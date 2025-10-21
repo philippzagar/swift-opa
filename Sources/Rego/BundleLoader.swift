@@ -130,17 +130,22 @@ struct DirectoryLoader: Sequence {
                 return $0
             case .success(let bundleFile):
                 // TODO is there a cool way to limit file sizes we're willing to read?
-                let data = Result { try Data(contentsOf: bundleFile.url) }
-                guard let data = try? data.get() else {
-                    // TODO wrap the underlying error
+                let result = Result { try Data(contentsOf: bundleFile.url) }
+                switch result {
+                case .success(let data):
+                    return .success(BundleFile(url: bundleFile.url, data: data))
+                case .failure(let error):
                     return .failure(
                         NSError(
-                            domain: "DirectoryLoader", code: 1,
+                            domain: "DirectoryLoader",
+                            code: 1,
                             userInfo: [
-                                NSLocalizedDescriptionKey: "Failed to read file \(bundleFile.url)"
-                            ]))
+                                NSLocalizedDescriptionKey: "Failed to read file \(bundleFile.url): \(error)",
+                                NSUnderlyingErrorKey: error
+                            ]
+                        )
+                    )
                 }
-                return .success(BundleFile(url: bundleFile.url, data: data))
             }
         }
         return AnyIterator(iter.makeIterator())
